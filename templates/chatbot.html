@@ -1,0 +1,730 @@
+{% extends "base.html" %}
+
+{% block title %}Financial Advisor Chatbot{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Chatbot Interface -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        <i class="bi bi-robot me-2"></i>Financial Advisor Chatbot
+                    </h4>
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-outline-danger btn-sm" id="clear-history-btn" title="Clear Chat History">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                        <div class="chatbot-status">
+                            <span class="badge bg-success">
+                                <i class="bi bi-circle-fill me-1"></i>Online
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0 d-flex flex-column" style="height: 600px;">
+                    <!-- Chat Messages Container -->
+                    <div id="chat-messages" class="chat-container flex-grow-1">
+                        <!-- Welcome Message will be added by JavaScript if no history exists -->
+                    </div>
+                    
+                    <!-- Chat Input -->
+                    <div class="chat-input-container flex-shrink-0">
+                        <div class="input-group">
+                            <input type="text" id="chat-input" class="form-control" 
+                                   placeholder="Ask me about your finances..." 
+                                   autocomplete="off">
+                            <button class="btn btn-primary" id="send-btn" type="button">
+                                <i class="bi bi-send"></i>
+                            </button>
+                        </div>
+                        <div class="quick-actions mt-2">
+                            <button class="btn btn-outline-primary btn-sm quick-action" data-message="How is my budget looking?">
+                                <i class="bi bi-graph-up me-1"></i>Budget Check
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm quick-action" data-message="Analyze my spending">
+                                <i class="bi bi-pie-chart me-1"></i>Spending Analysis
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm quick-action" data-message="Give me saving tips">
+                                <i class="bi bi-piggy-bank me-1"></i>Saving Tips
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm quick-action" data-message="Investment advice">
+                                <i class="bi bi-trophy me-1"></i>Investments
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card-body {
+    display: flex;
+    flex-direction: column;
+    height: 600px;
+}
+
+.chat-container {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 1rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 0.375rem;
+    /* Hide scrollbar completely */
+    scrollbar-width: none !important; /* Firefox */
+    -ms-overflow-style: none !important; /* IE and Edge */
+}
+
+.chat-container::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+.message {
+    display: flex;
+    margin-bottom: 1rem;
+    animation: fadeInUp 0.3s ease-out;
+}
+
+.message-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0.75rem;
+    flex-shrink: 0;
+}
+
+.bot-message .message-avatar {
+    background: linear-gradient(135deg, #6200ea, #9c27b0);
+    color: white;
+}
+
+.user-message {
+    flex-direction: row-reverse;
+}
+
+.user-message .message-avatar {
+    background: linear-gradient(135deg, #2196f3, #21cbf3);
+    color: white;
+    margin-right: 0;
+    margin-left: 0.75rem;
+}
+
+.message-content {
+    max-width: 70%;
+    min-width: 200px;
+}
+
+.message-text {
+    background: var(--card-bg);
+    padding: 0.75rem 1rem;
+    border-radius: 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    color: var(--text-color);
+    line-height: 1.5;
+}
+
+.user-message .message-text {
+    background: linear-gradient(135deg, #2196f3, #21cbf3);
+    color: white;
+}
+
+.message-time {
+    font-size: 0.75rem;
+    color: var(--secondary-text);
+    margin-top: 0.25rem;
+    text-align: right;
+}
+
+.user-message .message-time {
+    text-align: left;
+}
+
+.chat-input-container {
+    padding: 1rem;
+    background: var(--card-bg);
+    border-top: 1px solid var(--border-color);
+    flex-shrink: 0;
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+}
+
+.quick-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.quick-action {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 1rem;
+    transition: all 0.2s ease;
+}
+
+.quick-action:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--secondary-text);
+    font-style: italic;
+}
+
+.typing-dots {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.typing-dots span {
+    width: 6px;
+    height: 6px;
+    background: var(--secondary-text);
+    border-radius: 50%;
+    animation: typing 1.4s infinite ease-in-out;
+}
+
+.typing-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typing {
+    0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.4;
+    }
+    30% {
+        transform: translateY(-10px);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .chat-container {
+    background: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%);
+}
+
+[data-theme="dark"] .message-text {
+    background: var(--card-bg);
+    color: var(--text-color);
+}
+
+[data-theme="dark"] .chat-input-container {
+    background: var(--card-bg);
+    border-top-color: var(--border-color);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .card-body {
+        height: 500px;
+    }
+    
+    .chat-container {
+        padding: 0.75rem;
+    }
+    
+    .message-content {
+        max-width: 85%;
+    }
+    
+    .quick-actions {
+        flex-direction: column;
+    }
+    
+    .quick-action {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+/* Alternative: Very subtle scrollbar (uncomment if you want a thin scrollbar instead)
+.chat-container::-webkit-scrollbar {
+    width: 4px;
+}
+
+.chat-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.chat-container::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 2px;
+}
+
+.chat-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .chat-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .chat-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+*/
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const chatInput = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('send-btn');
+    const chatMessages = document.getElementById('chat-messages');
+    const quickActions = document.querySelectorAll('.quick-action');
+    const clearHistoryBtn = document.getElementById('clear-history-btn');
+    
+    // Format markdown to HTML - clean ChatGPT-like formatting
+    function formatMarkdown(text) {
+        if (!text) return '';
+        
+        // Split into lines first to process block-level elements
+        const lines = text.split('\n');
+        const processedLines = [];
+        let inList = false;
+        let listType = null;
+        let inCodeBlock = false;
+        let codeBlockContent = [];
+        
+        for (let i = 0; i < lines.length; i++) {
+            let line = lines[i];
+            const trimmed = line.trim();
+            
+            // Code blocks (```)
+            if (trimmed.startsWith('```')) {
+                if (inCodeBlock) {
+                    // Close code block
+                    processedLines.push('<pre style="background: rgba(0,0,0,0.08); padding: 0.75em; border-radius: 6px; overflow-x: auto; margin: 0.75em 0; font-family: \'Courier New\', monospace; font-size: 0.9em; line-height: 1.5;"><code>' + codeBlockContent.join('\n').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</code></pre>');
+                    codeBlockContent = [];
+                    inCodeBlock = false;
+                } else {
+                    // Open code block
+                    if (inList) {
+                        processedLines.push(listType === 'ul' ? '</ul>' : '</ol>');
+                        inList = false;
+                    }
+                    inCodeBlock = true;
+                }
+                continue;
+            }
+            
+            if (inCodeBlock) {
+                codeBlockContent.push(line);
+                continue;
+            }
+            
+            // Headers
+            if (trimmed.match(/^###\s+/)) {
+                if (inList) {
+                    processedLines.push(listType === 'ul' ? '</ul>' : '</ol>');
+                    inList = false;
+                }
+                const headerText = trimmed.replace(/^###\s+/, '');
+                processedLines.push('<h3 style="font-size: 1.15em; font-weight: 600; margin: 1em 0 0.5em 0; color: inherit; line-height: 1.4;">' + processInlineMarkdown(headerText) + '</h3>');
+                continue;
+            } else if (trimmed.match(/^##\s+/)) {
+                if (inList) {
+                    processedLines.push(listType === 'ul' ? '</ul>' : '</ol>');
+                    inList = false;
+                }
+                const headerText = trimmed.replace(/^##\s+/, '');
+                processedLines.push('<h2 style="font-size: 1.25em; font-weight: 600; margin: 1em 0 0.5em 0; color: inherit; line-height: 1.4;">' + processInlineMarkdown(headerText) + '</h2>');
+                continue;
+            } else if (trimmed.match(/^#\s+/)) {
+                if (inList) {
+                    processedLines.push(listType === 'ul' ? '</ul>' : '</ol>');
+                    inList = false;
+                }
+                const headerText = trimmed.replace(/^#\s+/, '');
+                processedLines.push('<h1 style="font-size: 1.35em; font-weight: 600; margin: 1em 0 0.5em 0; color: inherit; line-height: 1.4;">' + processInlineMarkdown(headerText) + '</h1>');
+                continue;
+            }
+            
+            // Lists - handle * - + at start of line (with optional leading spaces)
+            const listMatch = trimmed.match(/^[\*\-\+]\s+(.+)$/);
+            const orderedMatch = trimmed.match(/^\d+\.\s+(.+)$/);
+            
+            if (listMatch) {
+                if (!inList || listType !== 'ul') {
+                    if (inList) {
+                        processedLines.push(listType === 'ul' ? '</ul>' : '</ol>');
+                    }
+                    processedLines.push('<ul style="margin: 0.5em 0; padding-left: 1.75em; list-style-type: disc; line-height: 1.6;">');
+                    inList = true;
+                    listType = 'ul';
+                }
+                processedLines.push('<li style="margin: 0.35em 0;">' + processInlineMarkdown(listMatch[1]) + '</li>');
+                continue;
+            } else if (orderedMatch) {
+                if (!inList || listType !== 'ol') {
+                    if (inList) {
+                        processedLines.push(listType === 'ul' ? '</ul>' : '</ol>');
+                    }
+                    processedLines.push('<ol style="margin: 0.5em 0; padding-left: 1.75em; line-height: 1.6;">');
+                    inList = true;
+                    listType = 'ol';
+                }
+                processedLines.push('<li style="margin: 0.35em 0;">' + processInlineMarkdown(orderedMatch[1]) + '</li>');
+                continue;
+            } else {
+                // Not a list item, close list if open
+                if (inList) {
+                    processedLines.push(listType === 'ul' ? '</ul>' : '</ol>');
+                    inList = false;
+                }
+            }
+            
+            // Horizontal rule
+            if (trimmed === '---' || trimmed === '***') {
+                processedLines.push('<hr style="border: none; border-top: 1px solid rgba(0,0,0,0.1); margin: 1.5em 0;">');
+                continue;
+            }
+            
+            // Regular paragraph
+            if (trimmed) {
+                processedLines.push('<p style="margin: 0.75em 0; line-height: 1.6; color: inherit;">' + processInlineMarkdown(trimmed) + '</p>');
+            } else {
+                // Empty line - add spacing
+                processedLines.push('<br>');
+            }
+        }
+        
+        // Close any open structures
+        if (inList) {
+            processedLines.push(listType === 'ul' ? '</ul>' : '</ol>');
+        }
+        if (inCodeBlock) {
+            processedLines.push('<pre style="background: rgba(0,0,0,0.08); padding: 0.75em; border-radius: 6px; overflow-x: auto; margin: 0.75em 0; font-family: \'Courier New\', monospace; font-size: 0.9em;"><code>' + codeBlockContent.join('\n').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</code></pre>');
+        }
+        
+        return processedLines.join('');
+    }
+    
+    // Process inline markdown (bold, italic, code, links)
+    function processInlineMarkdown(text) {
+        if (!text) return '';
+        
+        // Escape HTML first
+        let html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        
+        // Code blocks (inline) - do this first to avoid conflicts
+        html = html.replace(/`([^`]+)`/g, '<code style="background: rgba(0,0,0,0.08); padding: 0.2em 0.4em; border-radius: 3px; font-family: \'Courier New\', monospace; font-size: 0.9em;">$1</code>');
+        
+        // Bold (**text** or __text__)
+        html = html.replace(/\*\*([^*]+?)\*\*/g, '<strong style="font-weight: 600;">$1</strong>');
+        html = html.replace(/__([^_]+?)__/g, '<strong style="font-weight: 600;">$1</strong>');
+        
+        // Links [text](url)
+        html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" style="color: #2196f3; text-decoration: none; border-bottom: 1px solid rgba(33, 150, 243, 0.3);">$1</a>');
+        
+        // Italic (*text* or _text_) - only if not part of bold (avoid lookbehind for compatibility)
+        // Process italic after bold, so we know ** has been converted
+        html = html.replace(/(^|[^*])\*([^*\n]+?)\*([^*]|$)/g, function(match, p1, p2, p3) {
+            // Skip if this looks like it was part of bold formatting
+            if (p1 === '<strong' || p3 === '</strong>') return match;
+            return p1 + '<em style="font-style: italic;">' + p2 + '</em>' + p3;
+        });
+        html = html.replace(/(^|[^_])_([^_\n]+?)_([^_]|$)/g, function(match, p1, p2, p3) {
+            if (p1 === '<strong' || p3 === '</strong>') return match;
+            return p1 + '<em style="font-style: italic;">' + p2 + '</em>' + p3;
+        });
+        
+        return html;
+    }
+    
+    // Auto-scroll to bottom
+    function scrollToBottom() {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    // Add message to chat
+    function addMessage(content, isUser = false, timestamp = null) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+        
+        const avatar = document.createElement('div');
+        avatar.className = 'message-avatar';
+        avatar.innerHTML = isUser ? '<i class="bi bi-person"></i>' : '<i class="bi bi-robot"></i>';
+        
+        const messageContent = document.createElement('div');
+        messageContent.className = 'message-content';
+        
+        const messageText = document.createElement('div');
+        messageText.className = 'message-text';
+        messageText.innerHTML = content;
+        
+        const messageTime = document.createElement('div');
+        messageTime.className = 'message-time';
+        
+        if (timestamp) {
+            // Format timestamp from database
+            const date = new Date(timestamp);
+            messageTime.textContent = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        } else {
+            messageTime.textContent = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+        
+        messageContent.appendChild(messageText);
+        messageContent.appendChild(messageTime);
+        
+        messageDiv.appendChild(avatar);
+        messageDiv.appendChild(messageContent);
+        
+        chatMessages.appendChild(messageDiv);
+        scrollToBottom();
+    }
+    
+    // Show typing indicator
+    function showTypingIndicator() {
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'message bot-message typing-message';
+        typingDiv.innerHTML = `
+            <div class="message-avatar">
+                <i class="bi bi-robot"></i>
+            </div>
+            <div class="message-content">
+                <div class="message-text">
+                    <div class="typing-indicator">
+                        <span>Financial advisor is typing</span>
+                        <div class="typing-dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        chatMessages.appendChild(typingDiv);
+        scrollToBottom();
+        return typingDiv;
+    }
+    
+    // Remove typing indicator
+    function removeTypingIndicator() {
+        const typingMessage = document.querySelector('.typing-message');
+        if (typingMessage) {
+            typingMessage.remove();
+        }
+    }
+    
+    // Send message to backend
+    async function sendMessage(message) {
+        if (!message.trim()) return;
+        
+        // Add user message
+        addMessage(message, true);
+        
+        // Show typing indicator
+        const typingIndicator = showTypingIndicator();
+        
+        try {
+            const response = await fetch('/chatbot', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: message })
+            });
+            
+            const data = await response.json();
+            
+            // Remove typing indicator
+            removeTypingIndicator();
+            
+            if (data.success) {
+                // Format markdown to HTML
+                const formattedResponse = formatMarkdown(data.response);
+                addMessage(formattedResponse);
+            } else {
+                addMessage('Sorry, I encountered an error. Please try again.');
+            }
+        } catch (error) {
+            removeTypingIndicator();
+            addMessage('Sorry, I\'m having trouble connecting. Please check your internet connection and try again.');
+            console.error('Chatbot error:', error);
+        }
+    }
+    
+    // Send button click
+    sendBtn.addEventListener('click', function() {
+        const message = chatInput.value.trim();
+        if (message) {
+            sendMessage(message);
+            chatInput.value = '';
+        }
+    });
+    
+    // Enter key press
+    chatInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            const message = chatInput.value.trim();
+            if (message) {
+                sendMessage(message);
+                chatInput.value = '';
+            }
+        }
+    });
+    
+    // Quick action buttons
+    quickActions.forEach(button => {
+        button.addEventListener('click', function() {
+            const message = this.getAttribute('data-message');
+            sendMessage(message);
+        });
+    });
+    
+    // Load chat history
+    async function loadChatHistory() {
+        try {
+            const response = await fetch('/chatbot/history');
+            const data = await response.json();
+            
+            if (data.success && data.history.length > 0) {
+                // Clear all existing messages
+                chatMessages.innerHTML = '';
+                
+                // Load chat history
+                data.history.forEach(chat => {
+                    // Add user message
+                    addMessage(chat.message, true, chat.timestamp);
+                    // Add bot response (format markdown)
+                    const formattedResponse = formatMarkdown(chat.response);
+                    addMessage(formattedResponse, false, chat.timestamp);
+                });
+            } else {
+                // No chat history, show welcome message
+                showWelcomeMessage();
+            }
+        } catch (error) {
+            console.error('Error loading chat history:', error);
+            // Show welcome message on error
+            showWelcomeMessage();
+        }
+    }
+    
+    // Show welcome message
+    function showWelcomeMessage() {
+        const welcomeMessage = document.createElement('div');
+        welcomeMessage.className = 'message bot-message';
+        welcomeMessage.innerHTML = `
+            <div class="message-avatar">
+                <i class="bi bi-robot"></i>
+            </div>
+            <div class="message-content">
+                <div class="message-text">
+                    👋 Hello! I'm your personal financial advisor. I can help you with:
+                    <ul class="mt-2 mb-0">
+                        <li>Budget planning and analysis</li>
+                        <li>Spending insights and recommendations</li>
+                        <li>Category-specific advice</li>
+                        <li>Investment guidance</li>
+                        <li>Savings strategies</li>
+                    </ul>
+                    <p class="mt-2 mb-0">What would you like to know about your finances?</p>
+                </div>
+                <div class="message-time" id="welcome-time"></div>
+            </div>
+        `;
+        chatMessages.appendChild(welcomeMessage);
+        
+        // Set welcome message time
+        document.getElementById('welcome-time').textContent = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    }
+    
+    // Clear chat history
+    async function clearChatHistory() {
+        try {
+            const response = await fetch('/chatbot/clear', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Clear the chat messages container
+                chatMessages.innerHTML = '';
+                
+                // Add welcome message back
+                const welcomeMessage = document.createElement('div');
+                welcomeMessage.className = 'message bot-message';
+                welcomeMessage.innerHTML = `
+                    <div class="message-avatar">
+                        <i class="bi bi-robot"></i>
+                    </div>
+                    <div class="message-content">
+                        <div class="message-text">
+                            👋 Hello! I'm your personal financial advisor. I can help you with:
+                            <ul class="mt-2 mb-0">
+                                <li>Budget planning and analysis</li>
+                                <li>Spending insights and recommendations</li>
+                                <li>Category-specific advice</li>
+                                <li>Investment guidance</li>
+                                <li>Savings strategies</li>
+                            </ul>
+                            <p class="mt-2 mb-0">What would you like to know about your finances?</p>
+                        </div>
+                        <div class="message-time" id="welcome-time"></div>
+                    </div>
+                `;
+                chatMessages.appendChild(welcomeMessage);
+                
+                // Set welcome message time
+                document.getElementById('welcome-time').textContent = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                
+                scrollToBottom();
+            }
+        } catch (error) {
+            console.error('Error clearing chat history:', error);
+        }
+    }
+    
+    // Auto-focus input
+    chatInput.focus();
+    
+    // Load chat history (this will show welcome message if no history)
+    loadChatHistory();
+    
+    // Clear history button
+    clearHistoryBtn.addEventListener('click', function() {
+        if (confirm('Are you sure you want to clear your chat history? This action cannot be undone.')) {
+            clearChatHistory();
+        }
+    });
+    
+    // Initial scroll to bottom
+    scrollToBottom();
+});
+</script>
+{% endblock %}
